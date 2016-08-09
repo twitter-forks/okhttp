@@ -29,6 +29,7 @@ public final class Request {
   private final Headers headers;
   private final RequestBody body;
   private final Object tag;
+  private final Boolean requestBodyPresent;
 
   private volatile CacheControl cacheControl; // Lazily initialized.
 
@@ -38,6 +39,7 @@ public final class Request {
     this.headers = builder.headers.build();
     this.body = builder.body;
     this.tag = builder.tag != null ? builder.tag : this;
+    this.requestBodyPresent = builder.requestBodyPresent;
   }
 
   public HttpUrl url() {
@@ -72,6 +74,24 @@ public final class Request {
     return new Builder(this);
   }
 
+  public boolean permitsRequestBody() {
+    return permitsRequestBody(this.requestBodyPresent, this.method);
+  }
+
+  static boolean permitsRequestBody(Boolean requestBodyPresent, String method) {
+    if (requestBodyPresent != null) {
+      return requestBodyPresent;
+    }
+    return HttpMethod.permitsRequestBody(method);
+  }
+
+  static boolean requiresRequestBody(Boolean requestBodyPresent, String method) {
+    if (requestBodyPresent != null) {
+      return requestBodyPresent;
+    }
+    return HttpMethod.requiresRequestBody(method);
+  }
+
   /**
    * Returns the cache control directives for this response. This is never null, even if this
    * response contains no {@code Cache-Control} header.
@@ -101,6 +121,7 @@ public final class Request {
     private Headers.Builder headers;
     private RequestBody body;
     private Object tag;
+    private Boolean requestBodyPresent;
 
     public Builder() {
       this.method = "GET";
@@ -113,6 +134,7 @@ public final class Request {
       this.body = request.body;
       this.tag = request.tag;
       this.headers = request.headers.newBuilder();
+      this.requestBodyPresent = request.requestBodyPresent;
     }
 
     public Builder url(HttpUrl url) {
@@ -188,6 +210,14 @@ public final class Request {
     }
 
     /**
+     * Overrides inference when determining whether a request body is allowed for a certain method.
+     **/
+    public Builder requestBodyPresent(boolean bodyPresent) {
+      this.requestBodyPresent = new Boolean(bodyPresent);
+      return this;
+    }
+
+    /**
      * Sets this request's {@code Cache-Control} header, replacing any cache control headers already
      * present. If {@code cacheControl} doesn't define any directives, this clears this request's
      * cache-control headers.
@@ -215,7 +245,8 @@ public final class Request {
     }
 
     public Builder delete() {
-      return delete(RequestBody.create(null, new byte[0]));
+      return delete(Request.permitsRequestBody(this.requestBodyPresent, "DELETE")
+          ? RequestBody.create(null, new byte[0]) : null);
     }
 
     public Builder put(RequestBody body) {
@@ -229,10 +260,10 @@ public final class Request {
     public Builder method(String method, RequestBody body) {
       if (method == null) throw new NullPointerException("method == null");
       if (method.length() == 0) throw new IllegalArgumentException("method.length() == 0");
-      if (body != null && !HttpMethod.permitsRequestBody(method)) {
+      if (body != null && !Request.permitsRequestBody(this.requestBodyPresent, method)) {
         throw new IllegalArgumentException("method " + method + " must not have a request body.");
       }
-      if (body == null && HttpMethod.requiresRequestBody(method)) {
+      if (body == null && Request.requiresRequestBody(this.requestBodyPresent, method)) {
         throw new IllegalArgumentException("method " + method + " must have a request body.");
       }
       this.method = method;

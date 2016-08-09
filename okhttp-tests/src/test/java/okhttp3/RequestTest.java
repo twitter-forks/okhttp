@@ -26,6 +26,7 @@ import okio.Buffer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
@@ -207,6 +208,30 @@ public final class RequestTest {
     assertForbiddenHeader("\u007f");
     assertForbiddenHeader("\u0080");
     assertForbiddenHeader("\ud83c\udf69");
+  }
+
+  @Test public void testPermitsRequestBody() throws Exception {
+    Request.Builder builder = new Request.Builder();
+    RequestBody getBody = RequestBody.create(null, new byte[0]);
+    builder.url("http://localhost/api");
+
+    // Assert that the default behavior throws an exception for GET
+    try {
+      builder.method("GET", getBody);
+      fail();
+    } catch (IllegalArgumentException expected) {
+    }
+
+    // Change the default request-body behavior of DELETE
+    builder.requestBodyPresent(false);
+    builder.delete();
+    assertNull(builder.build().body());
+    assertFalse(builder.build().permitsRequestBody());
+
+    // Change the default request-body behavior for GET
+    builder.requestBodyPresent(true);
+    builder.method("GET", getBody);
+    assertEquals(getBody, builder.build().body());
   }
 
   private void assertForbiddenHeader(String s) {

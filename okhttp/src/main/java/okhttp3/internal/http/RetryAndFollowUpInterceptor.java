@@ -310,7 +310,7 @@ public final class RetryAndFollowUpInterceptor implements Interceptor {
 
         // Redirects don't include a request body.
         Request.Builder requestBuilder = userResponse.request().newBuilder();
-        if (HttpMethod.permitsRequestBody(method)) {
+        if (userResponse.request().permitsRequestBody()) {
           if (HttpMethod.redirectsToGet(method)) {
             requestBuilder.method("GET", null);
           } else {
