@@ -18,6 +18,8 @@ package okhttp3.internal.connection;
 import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.net.SocketTimeoutException;
+
 import okhttp3.Address;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
@@ -285,7 +287,10 @@ public final class StreamAllocation {
     boolean noNewStreams = false;
 
     synchronized (connectionPool) {
-      if (e instanceof StreamResetException) {
+      if (e instanceof SocketTimeoutException && connection.isMultiplexed()) {
+        // Prevent additional streams over the connection if the socket fails with a timeout
+        noNewStreams = true;
+      } else if (e instanceof StreamResetException) {
         StreamResetException streamResetException = (StreamResetException) e;
         if (streamResetException.errorCode == ErrorCode.REFUSED_STREAM) {
           refusedStreamCount++;
