@@ -172,6 +172,18 @@ public final class ConnectionPool {
   }
 
   /**
+   * Prevent future streams from being allocated to the existing connections, but allow connections
+   * to become idle.
+   * */
+  public void markConnectionsStale() {
+    synchronized (this) {
+      for (Iterator<RealConnection> i = connections.iterator(); i.hasNext(); ) {
+        i.next().noNewStreams = true;
+      }
+    }
+  }
+
+  /**
    * Performs maintenance on this pool, evicting the connection that has been idle the longest if
    * either it has exceeded the keep alive limit or the idle connections limit.
    *
