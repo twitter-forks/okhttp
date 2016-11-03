@@ -157,7 +157,7 @@ public final class Http2xStream implements HttpStream {
     result.add(new Header(TARGET_METHOD, request.method()));
     result.add(new Header(TARGET_PATH, RequestLine.requestPath(request.url())));
     result.add(new Header(VERSION, "HTTP/1.1"));
-    result.add(new Header(TARGET_HOST, Util.hostHeader(request.url(), false)));
+    result.add(new Header(TARGET_HOST, hostHeaderValue(request)));
     result.add(new Header(TARGET_SCHEME, request.url().scheme()));
 
     Set<ByteString> names = new LinkedHashSet<>();
@@ -191,12 +191,18 @@ public final class Http2xStream implements HttpStream {
     return new StringBuilder(first).append('\0').append(second).toString();
   }
 
+  private static String hostHeaderValue(Request request) {
+    final String overriddenHost = request.header(HOST.utf8());
+    return (overriddenHost == null || overriddenHost.length() == 0)
+        ? Util.hostHeader(request.url(), false) : overriddenHost;
+  }
+
   public static List<Header> http2HeadersList(Request request) {
     Headers headers = request.headers();
     List<Header> result = new ArrayList<>(headers.size() + 4);
     result.add(new Header(TARGET_METHOD, request.method()));
     result.add(new Header(TARGET_PATH, RequestLine.requestPath(request.url())));
-    result.add(new Header(TARGET_AUTHORITY, Util.hostHeader(request.url(), false))); // Optional.
+    result.add(new Header(TARGET_AUTHORITY, hostHeaderValue(request))); // Optional.
     result.add(new Header(TARGET_SCHEME, request.url().scheme()));
 
     for (int i = 0, size = headers.size(); i < size; i++) {
