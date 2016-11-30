@@ -79,7 +79,7 @@ public final class RealConnection extends FramedConnection.Listener implements C
   public BufferedSink sink;
   public int allocationLimit;
   public final List<Reference<StreamAllocation>> allocations = new ArrayList<>();
-  public volatile boolean noNewStreams;
+  public boolean noNewStreams;
   public long idleAtNanos = Long.MAX_VALUE;
 
   public RealConnection(Route route) {
@@ -365,7 +365,7 @@ public final class RealConnection extends FramedConnection.Listener implements C
     }
 
     if (framedConnection != null) {
-      return !noNewStreams;
+      return true; // TODO: check framedConnection.shutdown.
     }
 
     if (doExtensiveChecks) {
@@ -398,12 +398,6 @@ public final class RealConnection extends FramedConnection.Listener implements C
   /** When settings are received, adjust the allocation limit. */
   @Override public void onSettings(FramedConnection connection) {
     allocationLimit = connection.maxConcurrentStreams();
-  }
-
-  @Override
-  public void onGoAway(FramedConnection connection) {
-    // Prevent future stream allocations to this connection
-    noNewStreams = true;
   }
 
   @Override public Handshake handshake() {

@@ -628,6 +628,9 @@ public final class FramedConnection implements Closeable {
       }
       FramedStream stream;
       synchronized (FramedConnection.this) {
+        // If we're shutdown, don't bother with this stream.
+        if (shutdown) return;
+
         stream = getStream(streamId);
 
         if (stream == null) {
@@ -755,12 +758,6 @@ public final class FramedConnection implements Closeable {
     @Override public void goAway(int lastGoodStreamId, ErrorCode errorCode, ByteString debugData) {
       if (debugData.size() > 0) { // TODO: log the debugData
       }
-
-      executor.execute(new NamedRunnable("OkHttp %s goaway ", hostname) {
-        @Override public void execute() {
-          listener.onGoAway(FramedConnection.this);
-        }
-      });
 
       // Copy the streams first. We don't want to hold a lock when we call receiveRstStream().
       FramedStream[] streamsCopy;
@@ -921,9 +918,6 @@ public final class FramedConnection implements Closeable {
      * and those calls are not necessarily serialized.
      */
     public void onSettings(FramedConnection connection) {
-    }
-
-    public void onGoAway(FramedConnection connection) {
     }
   }
 }
