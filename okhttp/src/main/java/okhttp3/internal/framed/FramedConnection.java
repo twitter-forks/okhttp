@@ -633,9 +633,6 @@ public final class FramedConnection implements Closeable {
       }
       FramedStream stream;
       synchronized (FramedConnection.this) {
-        // If we're shutdown, don't bother with this stream.
-        if (shutdown) return;
-
         stream = getStream(streamId);
 
         if (stream == null) {
